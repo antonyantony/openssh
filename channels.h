@@ -264,6 +264,7 @@ void	 channel_clear_permitted_opens(void);
 void	 channel_clear_adm_permitted_opens(void);
 void 	 channel_print_adm_permitted_opens(void);
 int      channel_input_port_forward_request(int, int);
+int     channel_connect_remote_to(u_short);
 Channel	*channel_connect_to(const char *, u_short, char *, char *);
 Channel	*channel_connect_stdio_fwd(const char*, u_short, int, int);
 Channel	*channel_connect_by_listen_address(u_short, char *, char *);

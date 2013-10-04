@@ -339,7 +339,7 @@ typedef enum {
 	sHostbasedUsesNameFromPacketOnly, sClientAliveInterval,
 	sClientAliveCountMax, sAuthorizedKeysFile,
 	sGssAuthentication, sGssCleanupCreds, sAcceptEnv, sPermitTunnel,
-	sMatch, sPermitOpen, sForceCommand, sChrootDirectory,
+	sMatch, sPermitOpen, sPermitRemoteOpen, sForceCommand, sChrootDirectory,
 	sUsePrivilegeSeparation, sAllowAgentForwarding,
 	sZeroKnowledgePasswordAuthentication, sHostCertificate,
 	sRevokedKeys, sTrustedUserCAKeys, sAuthorizedPrincipalsFile,
@@ -464,6 +464,7 @@ static struct {
 	{ "permittunnel", sPermitTunnel, SSHCFG_ALL },
 	{ "match", sMatch, SSHCFG_ALL },
 	{ "permitopen", sPermitOpen, SSHCFG_ALL },
+	{ "permitremoteopen", sPermitRemoteOpen, SSHCFG_ALL },
 	{ "forcecommand", sForceCommand, SSHCFG_ALL },
 	{ "chrootdirectory", sChrootDirectory, SSHCFG_ALL },
 	{ "hostcertificate", sHostCertificate, SSHCFG_GLOBAL },
@@ -1507,6 +1508,10 @@ process_server_config_line(ServerOptions *options, char *line,
 				options->num_permitted_opens =
 				    channel_add_adm_permitted_opens(p, port);
 		}
+		break;
+	case sPermitRemoteOpen:
+		fatal("%s line %d: PermitRemoteOpen not supported yet", filename,
+				linenum);
 		break;
 
 	case sForceCommand:
