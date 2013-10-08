@@ -3188,6 +3188,18 @@ channel_add_adm_permitted_opens(char *host, int port)
 	return ++num_adm_permitted_opens;
 }
 
+int
+channel_add_adm_permitted_remote_opens(int port)
+{
+	debug("config allows remote port forwarding,  port %d", port);
+
+	permitted_adm_remote_opens = xrealloc(permitted_adm_remote_opens,
+	    num_adm_permitted_remote_opens + 1, sizeof(*permitted_adm_remote_opens));
+	permitted_adm_remote_opens[num_adm_permitted_remote_opens].listen_port = port;
+	return ++num_adm_permitted_remote_opens;
+}
+
+
 void
 channel_disable_adm_local_opens(void)
 {
@@ -3195,6 +3207,15 @@ channel_disable_adm_local_opens(void)
 	permitted_adm_opens = xmalloc(sizeof(*permitted_adm_opens));
 	permitted_adm_opens[num_adm_permitted_opens].host_to_connect = NULL;
 	num_adm_permitted_opens = 1;
+}
+
+void
+channel_disable_adm_remote_opens(void)
+{
+	channel_clear_adm_permitted_remote_opens();
+	permitted_adm_remote_opens = xmalloc(sizeof(*permitted_adm_remote_opens));
+	permitted_adm_remote_opens[num_adm_permitted_remote_opens].host_to_connect = NULL;
+	num_adm_permitted_remote_opens = 1;
 }
 
 void
@@ -3220,6 +3241,15 @@ channel_clear_adm_permitted_opens(void)
 	permitted_adm_opens = NULL;
 	num_adm_permitted_opens = 0;
 }
+
+void
+channel_clear_adm_permitted_remote_opens(void)
+{
+	free(permitted_adm_remote_opens);
+	permitted_adm_remote_opens = NULL;
+	num_adm_permitted_remote_opens = 0;
+}
+
 
 void
 channel_print_adm_permitted_opens(void)
