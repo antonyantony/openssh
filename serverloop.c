@@ -1147,7 +1147,7 @@ server_input_global_request(int type, u_int32_t seq, void *ctxt)
 			success = 0;
 			packet_send_debug("Server has disabled port forwarding.");
 		} else {
-			debug("AA check permitted");
+			debug2("check permitted remote opens");
 			if (!channel_connect_remote_to(listen_port)) {
 				success = 0;
 				packet_send_debug("Server denied remote port %u forward request.");
