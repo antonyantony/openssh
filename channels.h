@@ -264,6 +264,7 @@ void	 channel_disable_adm_remote_opens(void);
 void	 channel_update_permitted_opens(int, int);
 void	 channel_clear_permitted_opens(void);
 void	 channel_clear_adm_permitted_opens(void);
+void	 channel_clear_permitted_remote_opens(void);
 void	 channel_clear_adm_permitted_remote_opens(void);
 void 	 channel_print_adm_permitted_opens(void);
 int      channel_input_port_forward_request(int, int);
