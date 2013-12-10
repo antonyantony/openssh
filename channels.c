@@ -115,15 +115,19 @@ typedef struct {
 
 /* List of all permitted host/port pairs to connect by the user. */
 static ForwardPermission *permitted_opens = NULL;
+static ForwardPermission *permitted_remote_opens = NULL;
 
 /* List of all permitted host/port pairs to connect by the admin. */
 static ForwardPermission *permitted_adm_opens = NULL;
+static ForwardPermission *permitted_adm_remote_opens = NULL;
 
 /* Number of permitted host/port pairs in the array permitted by the user. */
 static int num_permitted_opens = 0;
+static int num_permitted_remote_opens = 0;
 
 /* Number of permitted host/port pair in the array permitted by the admin. */
 static int num_adm_permitted_opens = 0;
+static int num_adm_permitted_remote_opens = 0;
 
 /* special-case port number meaning allow any port */
 #define FWD_PERMIT_ANY_PORT	0
@@ -134,6 +138,7 @@ static int num_adm_permitted_opens = 0;
  * anything after logging in anyway.
  */
 static int all_opens_permitted = 0;
+static int all_remote_opens_permitted = 0;
 
 
 /* -- X11 forwarding */
@@ -3106,6 +3111,13 @@ channel_permit_all_opens(void)
 	if (num_permitted_opens == 0)
 		all_opens_permitted = 1;
 }
+void
+channel_permit_all_remote_opens(void)
+{
+	if (num_permitted_remote_opens == 0)
+		all_remote_opens_permitted = 1;
+}
+
 
 void
 channel_add_permitted_opens(char *host, int port)
@@ -3119,6 +3131,19 @@ channel_add_permitted_opens(char *host, int port)
 	num_permitted_opens++;
 
 	all_opens_permitted = 0;
+}
+
+void
+channel_add_permitted_remote_opens(int port)
+{
+	debug("allow remote port forwarding port %d", port);
+
+	permitted_remote_opens = xrealloc(permitted_remote_opens,
+	    num_permitted_remote_opens + 1, sizeof(*permitted_remote_opens));
+	permitted_remote_opens[num_permitted_opens].listen_port = port;
+	num_permitted_remote_opens++;
+
+	all_remote_opens_permitted = 0;
 }
 
 /*
@@ -3163,6 +3188,18 @@ channel_add_adm_permitted_opens(char *host, int port)
 	return ++num_adm_permitted_opens;
 }
 
+int
+channel_add_adm_permitted_remote_opens(int port)
+{
+	debug("config allows remote port forwarding,  port %d", port);
+
+	permitted_adm_remote_opens = xrealloc(permitted_adm_remote_opens,
+	    num_adm_permitted_remote_opens + 1, sizeof(*permitted_adm_remote_opens));
+	permitted_adm_remote_opens[num_adm_permitted_remote_opens].listen_port = port;
+	return ++num_adm_permitted_remote_opens;
+}
+
+
 void
 channel_disable_adm_local_opens(void)
 {
@@ -3170,6 +3207,15 @@ channel_disable_adm_local_opens(void)
 	permitted_adm_opens = xmalloc(sizeof(*permitted_adm_opens));
 	permitted_adm_opens[num_adm_permitted_opens].host_to_connect = NULL;
 	num_adm_permitted_opens = 1;
+}
+
+void
+channel_disable_adm_remote_opens(void)
+{
+	channel_clear_adm_permitted_remote_opens();
+	permitted_adm_remote_opens = xmalloc(sizeof(*permitted_adm_remote_opens));
+	permitted_adm_remote_opens[num_adm_permitted_remote_opens].host_to_connect = NULL;
+	num_adm_permitted_remote_opens = 1;
 }
 
 void
@@ -3195,6 +3241,15 @@ channel_clear_adm_permitted_opens(void)
 	permitted_adm_opens = NULL;
 	num_adm_permitted_opens = 0;
 }
+
+void
+channel_clear_adm_permitted_remote_opens(void)
+{
+	free(permitted_adm_remote_opens);
+	permitted_adm_remote_opens = NULL;
+	num_adm_permitted_remote_opens = 0;
+}
+
 
 void
 channel_print_adm_permitted_opens(void)
@@ -3382,6 +3437,49 @@ channel_connect_to(const char *host, u_short port, char *ctype, char *rname)
 	}
 	return connect_to(host, port, ctype, rname);
 }
+
+/* Check if remote port is permitted and connect. */
+int 
+channel_connect_remote_to(u_short port)
+{
+	int i, permit, permit_adm = 1;
+	int allowed_port;
+
+	permit = all_remote_opens_permitted;
+	if (!permit) {
+		for (i = 0; i < num_permitted_remote_opens; i++) {
+			allowed_port = permitted_remote_opens[i].listen_port;
+			debug("i=%d check remote permitted vs requested "
+					"%u vs %u", i, allowed_port, port);
+			if ( port_match(allowed_port, port)) {
+				debug2("i=%d found match remote permitted vs "
+						"requested %u==%u", i, allowed_port, port);
+				permit = 1;
+				break;
+			}
+		}	
+	}
+	if (num_adm_permitted_remote_opens > 0) {
+		permit_adm = 0;
+		for (i = 0; i < num_adm_permitted_remote_opens; i++)
+			if (port_match(allowed_port, port) ) {
+				/*  && strcmp(permitted_adm_remote_opens[i].host_to_connect, host) == 0) */
+				debug2("i=%d found match admin remote permitted vs "
+						"requested %u==%u", i, allowed_port, port);
+				permit_adm = 1;
+				
+			}
+	}
+
+	if (!permit || !permit_adm) {
+		logit("Received request to forward remote port %d, "
+		      "but the request was denied. return %d", port, permit);
+		return NULL;
+	}
+	return ( permit | permit_adm);
+}
+
+
 
 void
 channel_send_window_changes(void)
