@@ -85,6 +85,7 @@ auth_clear_options(void)
 	}
 	forced_tun_device = -1;
 	channel_clear_permitted_opens();
+	channel_clear_permitted_remote_opens();
 }
 
 /*

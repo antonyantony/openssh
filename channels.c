@@ -3136,7 +3136,7 @@ channel_add_permitted_opens(char *host, int port)
 void
 channel_add_permitted_remote_opens(int port)
 {
-	debug("allow remote port forwarding port %d", port);
+	debug("allow remote port forwarding %d", port);
 
 	permitted_remote_opens = xrealloc(permitted_remote_opens,
 	    num_permitted_remote_opens + 1, sizeof(*permitted_remote_opens));
@@ -3229,6 +3229,16 @@ channel_clear_permitted_opens(void)
 	permitted_opens = NULL;
 	num_permitted_opens = 0;
 }
+
+void
+channel_clear_permitted_remote_opens(void)
+{
+
+	free(permitted_remote_opens);
+	permitted_remote_opens = NULL;
+	num_permitted_remote_opens = 0;
+}
+
 
 void
 channel_clear_adm_permitted_opens(void)
