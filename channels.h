@@ -258,6 +258,7 @@ void	 channel_set_af(int af);
 void     channel_permit_all_opens(void);
 void     channel_permit_all_remote_opens(void);
 void	 channel_add_permitted_opens(char *, int);
+void	 channel_add_permitted_remote_opens(char *, int);
 int	 channel_add_adm_permitted_opens(char *, int);
 int	 channel_add_adm_permitted_remote_opens(int);
 void	 channel_disable_adm_local_opens(void);
