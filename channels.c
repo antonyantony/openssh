@@ -3468,7 +3468,7 @@ int
 channel_connect_remote_to(u_short port)
 {
 	int i, permit, permit_adm = 1;
-	int allowed_port;
+	int allowed_port = 0;
 
 	permit = all_remote_opens_permitted;
 	if (!permit) {
@@ -3499,7 +3499,7 @@ channel_connect_remote_to(u_short port)
 	if (!permit || !permit_adm) {
 		logit("Received request to forward remote port %d, "
 		      "but the request was denied. return %d", port, permit);
-		return NULL;
+		return 0;
 	}
 	return ( permit | permit_adm);
 }
