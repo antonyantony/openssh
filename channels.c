@@ -3499,7 +3499,7 @@ channel_connect_remote_to(u_short port)
 	if (!permit || !permit_adm) {
 		logit("Received request to forward remote port %d, "
 		      "but the request was denied. return %d", port, permit);
-		return FALSE;
+		return 0;
 	}
 	return ( permit | permit_adm);
 }
