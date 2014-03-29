@@ -1537,9 +1537,9 @@ process_server_config_line(ServerOptions *options, char *line,
 	case sPermitRemoteOpen:
 		arg = strdelim(&cp);
 		if (!arg || *arg == '\0')
-			fatal("%s line %d: missing PermitRemoteOpen specification",
-			    filename, linenum);
-		n = options->num_permitted_remote_opens;	/* modified later */
+			fatal("%s line %d: missing PermitRemoteOpen "
+				" specification", filename, linenum);
+		n = options->num_permitted_remote_opens; /* modified later */
 		if (strcmp(arg, "any") == 0) {
 			if (*activep && n == -1) {
 				channel_clear_adm_permitted_remote_opens();
@@ -1559,7 +1559,7 @@ process_server_config_line(ServerOptions *options, char *line,
 		for (; arg != NULL && *arg != '\0'; arg = strdelim(&cp)) {
 			if (arg == NULL || ((port = permitopen_port(arg)) < 0))
 				fatal("%s line %d: bad port number in "
-						"PermitRemoteOpen", filename, linenum);
+				      "PermitRemoteOpen", filename, linenum);
 			if (*activep && n == -1)
 				options->num_permitted_remote_opens =
 					channel_add_adm_permitted_remote_opens(port);
