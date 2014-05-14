@@ -1,5 +1,5 @@
 
-/* $OpenBSD: servconf.c,v 1.248 2013/12/06 13:39:49 markus Exp $ */
+/* $OpenBSD: servconf.c,v 1.249 2014/01/29 06:18:35 djm Exp $ */
 /*
  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
  *                    All rights reserved
@@ -147,7 +147,6 @@ initialize_server_options(ServerOptions *options)
 	options->chroot_directory = NULL;
 	options->authorized_keys_command = NULL;
 	options->authorized_keys_command_user = NULL;
-	options->zero_knowledge_password_authentication = -1;
 	options->revoked_keys_file = NULL;
 	options->trusted_user_ca_keys = NULL;
 	options->authorized_principals_file = NULL;
@@ -295,8 +294,6 @@ fill_default_server_options(ServerOptions *options)
 	}
 	if (options->permit_tun == -1)
 		options->permit_tun = SSH_TUNMODE_NO;
-	if (options->zero_knowledge_password_authentication == -1)
-		options->zero_knowledge_password_authentication = 0;
 	if (options->ip_qos_interactive == -1)
 		options->ip_qos_interactive = IPTOS_LOWDELAY;
 	if (options->ip_qos_bulk == -1)
@@ -344,9 +341,9 @@ typedef enum {
 	sHostbasedUsesNameFromPacketOnly, sClientAliveInterval,
 	sClientAliveCountMax, sAuthorizedKeysFile,
 	sGssAuthentication, sGssCleanupCreds, sAcceptEnv, sPermitTunnel,
-	sMatch, sPermitOpen, sPermitRemoteOpen, sForceCommand, sChrootDirectory,
+	sMatch, sPermitOpen, sForceCommand, sChrootDirectory,
 	sUsePrivilegeSeparation, sAllowAgentForwarding,
-	sZeroKnowledgePasswordAuthentication, sHostCertificate,
+	sHostCertificate,
 	sRevokedKeys, sTrustedUserCAKeys, sAuthorizedPrincipalsFile,
 	sKexAlgorithms, sIPQoS, sVersionAddendum,
 	sAuthorizedKeysCommand, sAuthorizedKeysCommandUser,
@@ -418,11 +415,6 @@ static struct {
 	{ "kbdinteractiveauthentication", sKbdInteractiveAuthentication, SSHCFG_ALL },
 	{ "challengeresponseauthentication", sChallengeResponseAuthentication, SSHCFG_GLOBAL },
 	{ "skeyauthentication", sChallengeResponseAuthentication, SSHCFG_GLOBAL }, /* alias */
-#ifdef JPAKE
-	{ "zeroknowledgepasswordauthentication", sZeroKnowledgePasswordAuthentication, SSHCFG_ALL },
-#else
-	{ "zeroknowledgepasswordauthentication", sUnsupported, SSHCFG_ALL },
-#endif
 	{ "checkmail", sDeprecated, SSHCFG_GLOBAL },
 	{ "listenaddress", sListenAddress, SSHCFG_GLOBAL },
 	{ "addressfamily", sAddressFamily, SSHCFG_GLOBAL },
@@ -470,7 +462,6 @@ static struct {
 	{ "permittty", sPermitTTY, SSHCFG_ALL },
 	{ "match", sMatch, SSHCFG_ALL },
 	{ "permitopen", sPermitOpen, SSHCFG_ALL },
-	{ "permitremoteopen", sPermitRemoteOpen, SSHCFG_ALL },
 	{ "forcecommand", sForceCommand, SSHCFG_ALL },
 	{ "chrootdirectory", sChrootDirectory, SSHCFG_ALL },
 	{ "hostcertificate", sHostCertificate, SSHCFG_GLOBAL },
@@ -1103,10 +1094,6 @@ process_server_config_line(ServerOptions *options, char *line,
 		intptr = &options->password_authentication;
 		goto parse_flag;
 
-	case sZeroKnowledgePasswordAuthentication:
-		intptr = &options->zero_knowledge_password_authentication;
-		goto parse_flag;
-
 	case sKbdInteractiveAuthentication:
 		intptr = &options->kbd_interactive_authentication;
 		goto parse_flag;
@@ -1534,37 +1521,6 @@ process_server_config_line(ServerOptions *options, char *line,
 				    channel_add_adm_permitted_opens(p, port);
 		}
 		break;
-	case sPermitRemoteOpen:
-		arg = strdelim(&cp);
-		if (!arg || *arg == '\0')
-			fatal("%s line %d: missing PermitRemoteOpen "
-				" specification", filename, linenum);
-		n = options->num_permitted_remote_opens; /* modified later */
-		if (strcmp(arg, "any") == 0) {
-			if (*activep && n == -1) {
-				channel_clear_adm_permitted_remote_opens();
-				options->num_permitted_remote_opens = 0;
-			}
-			break;
-		}
-		if (strcmp(arg, "none") == 0) {
-			if (*activep && n == -1) {
-				options->num_permitted_remote_opens = 1;
-				channel_disable_adm_remote_opens();
-			}
-			break;
-		}
-		if (*activep && n == -1)
-			channel_clear_adm_permitted_remote_opens();
-		for (; arg != NULL && *arg != '\0'; arg = strdelim(&cp)) {
-			if (arg == NULL || ((port = permitopen_port(arg)) < 0))
-				fatal("%s line %d: bad port number in "
-				      "PermitRemoteOpen", filename, linenum);
-			if (*activep && n == -1)
-				options->num_permitted_remote_opens =
-					channel_add_adm_permitted_remote_opens(port);
-		}
-		break;
 
 	case sForceCommand:
 		if (cp == NULL)
@@ -1799,7 +1755,6 @@ copy_set_server_options(ServerOptions *dst, ServerOptions *src, int preauth)
 	M_CP_INTOPT(hostbased_authentication);
 	M_CP_INTOPT(hostbased_uses_name_from_packet_only);
 	M_CP_INTOPT(kbd_interactive_authentication);
-	M_CP_INTOPT(zero_knowledge_password_authentication);
 	M_CP_INTOPT(permit_root_login);
 	M_CP_INTOPT(permit_empty_passwd);
 
@@ -2041,10 +1996,6 @@ dump_config(ServerOptions *o)
 #ifdef GSSAPI
 	dump_cfg_fmtint(sGssAuthentication, o->gss_authentication);
 	dump_cfg_fmtint(sGssCleanupCreds, o->gss_cleanup_creds);
-#endif
-#ifdef JPAKE
-	dump_cfg_fmtint(sZeroKnowledgePasswordAuthentication,
-	    o->zero_knowledge_password_authentication);
 #endif
 	dump_cfg_fmtint(sPasswordAuthentication, o->password_authentication);
 	dump_cfg_fmtint(sKbdInteractiveAuthentication,

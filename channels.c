@@ -1,4 +1,4 @@
-/* $OpenBSD: channels.c,v 1.328 2013/12/19 01:04:36 djm Exp $ */
+/* $OpenBSD: channels.c,v 1.331 2014/02/26 20:29:29 djm Exp $ */
 /*
  * Author: Tatu Ylonen <ylo@cs.hut.fi>
  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
@@ -115,19 +115,15 @@ typedef struct {
 
 /* List of all permitted host/port pairs to connect by the user. */
 static ForwardPermission *permitted_opens = NULL;
-static ForwardPermission *permitted_remote_opens = NULL;
 
 /* List of all permitted host/port pairs to connect by the admin. */
 static ForwardPermission *permitted_adm_opens = NULL;
-static ForwardPermission *permitted_adm_remote_opens = NULL;
 
 /* Number of permitted host/port pairs in the array permitted by the user. */
 static int num_permitted_opens = 0;
-static int num_permitted_remote_opens = 0;
 
 /* Number of permitted host/port pair in the array permitted by the admin. */
 static int num_adm_permitted_opens = 0;
-static int num_adm_permitted_remote_opens = 0;
 
 /* special-case port number meaning allow any port */
 #define FWD_PERMIT_ANY_PORT	0
@@ -138,7 +134,6 @@ static int num_adm_permitted_remote_opens = 0;
  * anything after logging in anyway.
  */
 static int all_opens_permitted = 0;
-static int all_remote_opens_permitted = 0;
 
 
 /* -- X11 forwarding */
@@ -428,7 +423,7 @@ channel_free(Channel *c)
 		if (cc->abandon_cb != NULL)
 			cc->abandon_cb(c, cc->ctx);
 		TAILQ_REMOVE(&c->status_confirms, cc, entry);
-		bzero(cc, sizeof(*cc));
+		explicit_bzero(cc, sizeof(*cc));
 		free(cc);
 	}
 	if (c->filter_cleanup != NULL && c->filter_ctx != NULL)
@@ -1077,6 +1072,9 @@ channel_decode_socks4(Channel *c, fd_set *readset, fd_set *writeset)
 	buffer_get(&c->input, (char *)&s4_req.dest_addr, 4);
 	have = buffer_len(&c->input);
 	p = buffer_ptr(&c->input);
+	if (memchr(p, '\0', have) == NULL)
+		fatal("channel %d: decode socks4: user not nul terminated",
+		    c->self);
 	len = strlen(p);
 	debug2("channel %d: decode socks4: user %s/%d", c->self, p, len);
 	len++;					/* trailing '\0' */
@@ -1391,7 +1389,7 @@ port_open_helper(Channel *c, char *rtype)
 	int direct;
 	char buf[1024];
 	char *local_ipaddr = get_local_ipaddr(c->sock);
-	int local_port = get_sock_port(c->sock, 1);
+	int local_port = c->sock == -1 ? 65536 : get_sock_port(c->sock, 1);
 	char *remote_ipaddr = get_peer_ipaddr(c->sock);
 	int remote_port = get_peer_port(c->sock);
 
@@ -2676,7 +2674,7 @@ channel_input_status_confirm(int type, u_int32_t seq, void *ctxt)
 		return;
 	cc->cb(type, c, cc->ctx);
 	TAILQ_REMOVE(&c->status_confirms, cc, entry);
-	bzero(cc, sizeof(*cc));
+	explicit_bzero(cc, sizeof(*cc));
 	free(cc);
 }
 
@@ -3126,13 +3124,6 @@ channel_permit_all_opens(void)
 	if (num_permitted_opens == 0)
 		all_opens_permitted = 1;
 }
-void
-channel_permit_all_remote_opens(void)
-{
-	if (num_permitted_remote_opens == 0)
-		all_remote_opens_permitted = 1;
-}
-
 
 void
 channel_add_permitted_opens(char *host, int port)
@@ -3146,19 +3137,6 @@ channel_add_permitted_opens(char *host, int port)
 	num_permitted_opens++;
 
 	all_opens_permitted = 0;
-}
-
-void
-channel_add_permitted_remote_opens(int port)
-{
-	debug("allow remote port forwarding %d", port);
-
-	permitted_remote_opens = xrealloc(permitted_remote_opens,
-	    num_permitted_remote_opens + 1, sizeof(*permitted_remote_opens));
-	permitted_remote_opens[num_permitted_opens].listen_port = port;
-	num_permitted_remote_opens++;
-
-	all_remote_opens_permitted = 0;
 }
 
 /*
@@ -3203,18 +3181,6 @@ channel_add_adm_permitted_opens(char *host, int port)
 	return ++num_adm_permitted_opens;
 }
 
-int
-channel_add_adm_permitted_remote_opens(int port)
-{
-	debug("config allows remote port forwarding,  port %d", port);
-
-	permitted_adm_remote_opens = xrealloc(permitted_adm_remote_opens,
-	    num_adm_permitted_remote_opens + 1, sizeof(*permitted_adm_remote_opens));
-	permitted_adm_remote_opens[num_adm_permitted_remote_opens].listen_port = port;
-	return ++num_adm_permitted_remote_opens;
-}
-
-
 void
 channel_disable_adm_local_opens(void)
 {
@@ -3222,15 +3188,6 @@ channel_disable_adm_local_opens(void)
 	permitted_adm_opens = xmalloc(sizeof(*permitted_adm_opens));
 	permitted_adm_opens[num_adm_permitted_opens].host_to_connect = NULL;
 	num_adm_permitted_opens = 1;
-}
-
-void
-channel_disable_adm_remote_opens(void)
-{
-	channel_clear_adm_permitted_remote_opens();
-	permitted_adm_remote_opens = xmalloc(sizeof(*permitted_adm_remote_opens));
-	permitted_adm_remote_opens[num_adm_permitted_remote_opens].host_to_connect = NULL;
-	num_adm_permitted_remote_opens = 1;
 }
 
 void
@@ -3246,16 +3203,6 @@ channel_clear_permitted_opens(void)
 }
 
 void
-channel_clear_permitted_remote_opens(void)
-{
-
-	free(permitted_remote_opens);
-	permitted_remote_opens = NULL;
-	num_permitted_remote_opens = 0;
-}
-
-
-void
 channel_clear_adm_permitted_opens(void)
 {
 	int i;
@@ -3266,15 +3213,6 @@ channel_clear_adm_permitted_opens(void)
 	permitted_adm_opens = NULL;
 	num_adm_permitted_opens = 0;
 }
-
-void
-channel_clear_adm_permitted_remote_opens(void)
-{
-	free(permitted_adm_remote_opens);
-	permitted_adm_remote_opens = NULL;
-	num_adm_permitted_remote_opens = 0;
-}
-
 
 void
 channel_print_adm_permitted_opens(void)
@@ -3369,9 +3307,7 @@ channel_connect_ctx_free(struct channel_connect *cctx)
 	free(cctx->host);
 	if (cctx->aitop)
 		freeaddrinfo(cctx->aitop);
-	bzero(cctx, sizeof(*cctx));
-	cctx->host = NULL;
-	cctx->ai = cctx->aitop = NULL;
+	memset(cctx, 0, sizeof(*cctx));
 }
 
 /* Return CONNECTING channel to remote host, port */
@@ -3462,49 +3398,6 @@ channel_connect_to(const char *host, u_short port, char *ctype, char *rname)
 	}
 	return connect_to(host, port, ctype, rname);
 }
-
-/* Check if remote port is permitted and connect. */
-int 
-channel_connect_remote_to(u_short port)
-{
-	int i, permit, permit_adm = 1;
-	int allowed_port = 0;
-
-	permit = all_remote_opens_permitted;
-	if (!permit) {
-		for (i = 0; i < num_permitted_remote_opens; i++) {
-			allowed_port = permitted_remote_opens[i].listen_port;
-			debug("i=%d check remote permitted vs requested "
-					"%u vs %u", i, allowed_port, port);
-			if ( port_match(allowed_port, port)) {
-				debug2("i=%d found match remote permitted vs "
-						"requested %u==%u", i, allowed_port, port);
-				permit = 1;
-				break;
-			}
-		}	
-	}
-	if (num_adm_permitted_remote_opens > 0) {
-		permit_adm = 0;
-		for (i = 0; i < num_adm_permitted_remote_opens; i++)
-			if (port_match(allowed_port, port) ) {
-				/*  && strcmp(permitted_adm_remote_opens[i].host_to_connect, host) == 0) */
-				debug2("i=%d found match admin remote permitted vs "
-						"requested %u==%u", i, allowed_port, port);
-				permit_adm = 1;
-				
-			}
-	}
-
-	if (!permit || !permit_adm) {
-		logit("Received request to forward remote port %d, "
-		      "but the request was denied. return %d", port, permit);
-		return 0;
-	}
-	return ( permit | permit_adm);
-}
-
-
 
 void
 channel_send_window_changes(void)
