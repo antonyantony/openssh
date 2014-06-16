@@ -839,7 +839,6 @@ Available keywords are
 .Cm PasswordAuthentication ,
 .Cm PermitEmptyPasswords ,
 .Cm PermitOpen ,
-.Cm PermitRemoteOpen ,
 .Cm PermitRootLogin ,
 .Cm PermitTTY ,
 .Cm PermitTunnel ,
@@ -923,22 +922,18 @@ An argument of
 .Dq none
 can be used to prohibit all forwarding requests.
 By default all port forwarding requests are permitted.
-.It
-.Cm PermitRemoteOpen
-.Sm off
-.Ar \& port
-.Sm on
-.El
-.Pp
-Multiple forwards may be specified by separating them with whitespace.
+.It Cm PermitRemoteOpen
+Specifies the TCP ports which may be opened by clients with the
+RemoteForward option.
+Multiple forwards may be specified by separating them with whiespace.
 An argument of
 .Dq any
-can be used to remove all restrictions and permit any remoite forwarding 
-requests.  An argument of
+can be used to remove all restrictions and permit any remote
+forwarding requests.
+An argument of
 .Dq none
 can be used to prohibit all forwarding requests.
 By default all port forwarding requests are permitted.
-
 .It Cm PermitRootLogin
 Specifies whether root can log in using
 .Xr ssh 1 .
