@@ -908,6 +908,7 @@ An argument of
 .Dq none
 can be used to prohibit all forwarding requests.
 By default all port forwarding requests are permitted.
+<<<<<<< HEAD
 .It
 .Cm PermitRemoteOpen
 .Sm off
@@ -924,6 +925,20 @@ requests.  An argument of
 can be used to prohibit all forwarding requests.
 By default all port forwarding requests are permitted.
 
+=======
+.It Cm PermitRemoteOpen
+Specifies the TCP ports which may be opened by clients with the
+RemoteForward option.
+Multiple forwards may be specified by separating them with whiespace.
+An argument of
+.Dq any
+can be used to remove all restrictions and permit any remote
+forwarding requests.
+An argument of
+.Dq none
+can be used to prohibit all forwarding requests.
+By default all port forwarding requests are permitted.
+>>>>>>> e055ecf... fix manpages from Paul de Weerd
 .It Cm PermitRootLogin
 Specifies whether root can log in using
 .Xr ssh 1 .
