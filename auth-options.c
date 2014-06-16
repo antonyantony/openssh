@@ -382,10 +382,10 @@ auth_parse_options(struct passwd *pw, char *opts, char *file, u_long linenum)
 			p = patterns;
 			if (p == NULL || (port = permitopen_port(p)) < 0) {
 				debug("%.100s, line %lu: Bad permitremoteopen "
-				     "port <%.100s>", file, linenum, p ? p : 
+				     "port <%.100s>", file, linenum, p ? p :
 				      "");
 				auth_debug_add("%.100s, line %lu: "
-						"Bad permitremoteopen port", 
+						"Bad permitremoteopen port",
 						file, linenum);
 				free(patterns);
 				goto bad_option;

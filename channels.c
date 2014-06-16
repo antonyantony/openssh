@@ -3464,7 +3464,7 @@ channel_connect_to(const char *host, u_short port, char *ctype, char *rname)
 }
 
 /* Check if remote port is permitted and connect. */
-int 
+int
 channel_connect_remote_to(u_short port)
 {
 	int i, permit, permit_adm = 1;
@@ -3482,7 +3482,7 @@ channel_connect_remote_to(u_short port)
 				permit = 1;
 				break;
 			}
-		}	
+		}
 	}
 	if (num_adm_permitted_remote_opens > 0) {
 		permit_adm = 0;
@@ -3492,7 +3492,6 @@ channel_connect_remote_to(u_short port)
 				debug2("i=%d found match admin remote permitted vs "
 						"requested %u==%u", i, allowed_port, port);
 				permit_adm = 1;
-				
 			}
 	}
 
