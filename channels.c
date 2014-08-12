@@ -3140,7 +3140,7 @@ channel_add_permitted_remote_opens(int port)
 
 	permitted_remote_opens = xrealloc(permitted_remote_opens,
 	    num_permitted_remote_opens + 1, sizeof(*permitted_remote_opens));
-	permitted_remote_opens[num_permitted_opens].listen_port = port;
+	permitted_remote_opens[num_permitted_remote_opens].listen_port = port;
 	num_permitted_remote_opens++;
 
 	all_remote_opens_permitted = 0;
