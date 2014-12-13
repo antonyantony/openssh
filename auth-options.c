@@ -81,6 +81,7 @@ auth_clear_options(void)
 	}
 	forced_tun_device = -1;
 	channel_clear_permitted_opens();
+	channel_clear_permitted_remote_opens();
 }
 
 /*
@@ -348,6 +349,51 @@ auth_parse_options(struct passwd *pw, char *opts, char *file, u_long linenum)
 			}
 			if ((options.allow_tcp_forwarding & FORWARD_LOCAL) != 0)
 				channel_add_permitted_opens(host, port);
+			free(patterns);
+			goto next_option;
+		}
+		debug("AA trying permitremoteopen %s", opts);
+		cp = "permitremoteopen=\"";
+		if (strncasecmp(opts, cp, strlen(cp)) == 0) {
+			char *p;
+			int port;
+			char *patterns = xmalloc(strlen(opts) + 1);
+
+			opts += strlen(cp);
+			i = 0;
+			while (*opts) {
+				if (*opts == '"')
+					break;
+				if (*opts == '\\' && opts[1] == '"') {
+					opts += 2;
+					patterns[i++] = '"';
+					continue;
+				}
+				patterns[i++] = *opts++;
+			}
+			if (!*opts) {
+				debug("%.100s, line %lu: missing end quote",
+				    file, linenum);
+				auth_debug_add("%.100s, line %lu: missing "
+				    "end quote", file, linenum);
+				free(patterns);
+				goto bad_option;
+			}
+			patterns[i] = '\0';
+			opts++;
+			p = patterns;
+			if (p == NULL || (port = permitopen_port(p)) < 0) {
+				debug("%.100s, line %lu: Bad permitremoteopen "
+				     "port <%.100s>", file, linenum, p ? p :
+				      "");
+				auth_debug_add("%.100s, line %lu: "
+						"Bad permitremoteopen port",
+						file, linenum);
+				free(patterns);
+				goto bad_option;
+			}
+			if ((options.allow_tcp_forwarding & FORWARD_LOCAL) != 0)
+				channel_add_permitted_remote_opens(port);
 			free(patterns);
 			goto next_option;
 		}

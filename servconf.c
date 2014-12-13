@@ -353,7 +353,7 @@ typedef enum {
 	sHostbasedUsesNameFromPacketOnly, sClientAliveInterval,
 	sClientAliveCountMax, sAuthorizedKeysFile,
 	sGssAuthentication, sGssCleanupCreds, sAcceptEnv, sPermitTunnel,
-	sMatch, sPermitOpen, sForceCommand, sChrootDirectory,
+	sMatch, sPermitOpen, sPermitRemoteOpen, sForceCommand, sChrootDirectory,
 	sUsePrivilegeSeparation, sAllowAgentForwarding,
 	sHostCertificate,
 	sRevokedKeys, sTrustedUserCAKeys, sAuthorizedPrincipalsFile,
@@ -477,6 +477,7 @@ static struct {
 	{ "permituserrc", sPermitUserRC, SSHCFG_ALL },
 	{ "match", sMatch, SSHCFG_ALL },
 	{ "permitopen", sPermitOpen, SSHCFG_ALL },
+	{ "permitremoteopen", sPermitRemoteOpen, SSHCFG_ALL },
 	{ "forcecommand", sForceCommand, SSHCFG_ALL },
 	{ "chrootdirectory", sChrootDirectory, SSHCFG_ALL },
 	{ "hostcertificate", sHostCertificate, SSHCFG_GLOBAL },
@@ -1546,6 +1547,37 @@ process_server_config_line(ServerOptions *options, char *line,
 			if (*activep && n == -1)
 				options->num_permitted_opens =
 				    channel_add_adm_permitted_opens(p, port);
+		}
+		break;
+	case sPermitRemoteOpen:
+		arg = strdelim(&cp);
+		if (!arg || *arg == '\0')
+			fatal("%s line %d: missing PermitRemoteOpen "
+				" specification", filename, linenum);
+		n = options->num_permitted_remote_opens; /* modified later */
+		if (strcmp(arg, "any") == 0) {
+			if (*activep && n == -1) {
+				channel_clear_adm_permitted_remote_opens();
+				options->num_permitted_remote_opens = 0;
+			}
+			break;
+		}
+		if (strcmp(arg, "none") == 0) {
+			if (*activep && n == -1) {
+				options->num_permitted_remote_opens = 1;
+				channel_disable_adm_remote_opens();
+			}
+			break;
+		}
+		if (*activep && n == -1)
+			channel_clear_adm_permitted_remote_opens();
+		for (; arg != NULL && *arg != '\0'; arg = strdelim(&cp)) {
+			if (arg == NULL || ((port = permitopen_port(arg)) < 0))
+				fatal("%s line %d: bad port number in "
+				      "PermitRemoteOpen", filename, linenum);
+			if (*activep && n == -1)
+				options->num_permitted_remote_opens =
+					channel_add_adm_permitted_remote_opens(port);
 		}
 		break;
 
