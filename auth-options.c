@@ -352,7 +352,6 @@ auth_parse_options(struct passwd *pw, char *opts, char *file, u_long linenum)
 			free(patterns);
 			goto next_option;
 		}
-		debug("AA trying permitremoteopen %s", opts);
 		cp = "permitremoteopen=\"";
 		if (strncasecmp(opts, cp, strlen(cp)) == 0) {
 			char *p;
