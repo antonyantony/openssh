@@ -175,6 +175,7 @@ typedef struct {
 	int	permit_tun;
 
 	int	num_permitted_opens;
+	int	num_permitted_remote_opens;
 
 	char   *chroot_directory;
 	char   *revoked_keys_file;

@@ -619,6 +619,17 @@ they must be literal domains or addresses.
 A port specification of
 .Cm *
 matches any port.
+.It Cm permitremoteopen="port"
+Limit remote
+.Li ``ssh -R''
+port forwarding such that it may only forward the specified port to the client.
+Multiple
+.Cm permitremoteopen
+options may be applied separated by commas.
+Specified port must be a single port.
+A port specification of
+.Cm *
+matches any port.
 .It Cm principals="principals"
 On a
 .Cm cert-authority
