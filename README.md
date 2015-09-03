@@ -3,7 +3,7 @@ How to restrict ssh remote portforwarding to specified port(s).
 This is a fork of OpenSSH Linux port with an extra patch; permitremoteopen="XXX" in ~/.ssh/authorized_file  
 
 permitremoteopen limits the port(s) allowd to remote forward with -R option.
-This patch will work on 6.9p1 for older versions 6.8p1, 6.7p1, 6.6p1, 6.5p1, 6.4p1 and 6.3p1, pick 6.Xp1-permitremoteopen branch.
+This patch will work on 7.1p1 - 6.9p1. For older versions use the appropriate baranch 6.8p1, 6.7p1, 6.6p1, 6.5p1, 6.4p1 and 6.3p1, pick 6.Xp1-permitremoteopen branch.  
 
 ./configure
 make 
