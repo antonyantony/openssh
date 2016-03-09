@@ -156,6 +156,7 @@ initialize_server_options(ServerOptions *options)
 	options->num_accept_env = 0;
 	options->permit_tun = -1;
 	options->num_permitted_opens = -1;
+	options->num_permitted_remote_opens = -1;
 	options->adm_forced_command = NULL;
 	options->chroot_directory = NULL;
 	options->authorized_keys_command = NULL;

@@ -3958,6 +3958,7 @@ channel_connect_remote_to(u_short port)
 	if (num_adm_permitted_remote_opens > 0) {
 		permit_adm = 0;
 		for (i = 0; i < num_adm_permitted_remote_opens; i++)
+			allowed_port = permitted_adm_remote_opens[i].listen_port;
 			if (remote_port_match(allowed_port, port) ) {
 				/*  && strcmp(permitted_adm_remote_opens[i].host_to_connect, host) == 0) */
 				debug2("i=%d found match admin remote permitted vs "
