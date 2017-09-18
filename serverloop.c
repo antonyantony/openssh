@@ -737,9 +737,17 @@ server_input_global_request(int type, u_int32_t seq, void *ctxt)
 			success = 0;
 			packet_send_debug("Server has disabled port forwarding.");
 		} else {
-			/* Start listening on the port */
-			success = channel_setup_remote_fwd_listener(&fwd,
-			    &allocated_listen_port, &options.fwd_opts);
+			debug2("check permitted remote opens");
+			if (!channel_connect_remote_to(fwd.listen_port)) {
+				success = 0;
+				packet_send_debug("Server denied remote port forward request.");
+			}
+			else {
+				/* Start listening on the port */
+				success = channel_setup_remote_fwd_listener(&fwd,
+						&allocated_listen_port,
+						&options.fwd_opts);
+			}
 		}
 		free(fwd.listen_host);
 		if ((resp = sshbuf_new()) == NULL)

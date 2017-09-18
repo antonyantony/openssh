@@ -258,10 +258,14 @@ do_authenticated(Authctxt *authctxt)
 	/* setup the channel layer */
 	/* XXX - streamlocal? */
 	if (no_port_forwarding_flag || options.disable_forwarding ||
-	    (options.allow_tcp_forwarding & FORWARD_LOCAL) == 0)
+	    (options.allow_tcp_forwarding & FORWARD_LOCAL) == 0) {
 		channel_disable_adm_local_opens();
-	else
+		channel_disable_adm_remote_opens();
+	}
+	else {
 		channel_permit_all_opens();
+		channel_permit_all_remote_opens();
+	}
 
 	auth_debug_send();
 
