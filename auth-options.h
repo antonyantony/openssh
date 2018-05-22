@@ -55,6 +55,10 @@ struct sshauthopt {
 	size_t npermitopen;
 	char **permitopen;
 
+	size_t npermitremoteopen;
+	char **permitremoteopen;
+
+
 	/*
 	 * Permitted host/addresses (comma-separated)
 	 * Caller must check source address matches both lists (if present).

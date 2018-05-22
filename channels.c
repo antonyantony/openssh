@@ -3758,7 +3758,7 @@ channel_setup_remote_fwd_listener(struct ssh *ssh, struct Forward *fwd,
     int *allocated_listen_port, struct ForwardOptions *fwd_opts)
 {
 	if (!check_rfwd_permission(ssh, fwd)) {
-		packet_send_debug("port forwarding refused");
+		packet_send_debug("rmote port forwarding refused");
 		return 0;
 	}
 	if (fwd->listen_path != NULL) {

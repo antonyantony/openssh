@@ -290,6 +290,29 @@ prepare_auth_info_file(struct passwd *pw, struct sshbuf *info)
 }
 
 static void
+set_permitremoteopen_from_authopts(struct ssh *ssh, const struct sshauthopt *opts)
+{
+	char *tmp, *cp;
+	int port;
+	size_t i;
+
+	if ((options.allow_tcp_forwarding & FORWARD_REMOTE) == 0)
+		return;
+	channel_clear_permitted_opens(ssh, FORWARD_USER, FORWARD_REMOTE);
+	for (i = 0; i < auth_opts->npermitremoteopen; i++) {
+		tmp = cp = xstrdup(auth_opts->permitremoteopen[i]);
+		/* This shouldn't fail as it has already been checked */
+		if (cp == NULL || (port = permitopen_port(cp)) < 0)
+			fatal("%s: internal error: permitremoteopen port",
+			    __func__);
+		channel_add_permitted_open(ssh, FORWARD_USER, FORWARD_REMOTE,
+		    NULL, port);
+		free(tmp);
+	}
+}
+
+
+static void
 set_permitopen_from_authopts(struct ssh *ssh, const struct sshauthopt *opts)
 {
 	char *tmp, *cp, *host;

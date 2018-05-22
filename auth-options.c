@@ -452,6 +452,41 @@ sshauthopt_parse(const char *opts, const char **errstrp)
 				goto alloc_fail;
 			}
 			ret->permitopen[ret->npermitopen++] = opt;
+		} else if (opt_match(&opts, "permitremoteopen")) {
+			if (ret->npermitremoteopen > INT_MAX) {
+				errstr = "too many permitremoteopens";
+				goto fail;
+			}
+
+			if ((opt = opt_dequote(&opts, &errstr)) == NULL)
+				goto fail;
+			if ((tmp = strdup(opt)) == NULL) {
+				free(opt);
+				goto alloc_fail;
+			}
+			cp = tmp;
+			/* validate syntax of permitremoteopen before recording it.
+			 * don't want to use permitremoteopen_port to avoid
+			 * dependency on channels.[ch] here.
+			 */
+			if (cp == NULL || a2port(cp) <= 0) {
+				free(tmp);
+				free(opt);
+				errstr = "invalid permitremoteopen port";
+				goto fail;
+			}
+			/* XXX - add streamlocal support */
+			free(tmp);
+			/* Record it */
+			oarray = ret->permitremoteopen;
+			if ((ret->permitremoteopen = recallocarray(ret->permitremoteopen,
+			    ret->npermitremoteopen, ret->npermitremoteopen + 1,
+			    sizeof(*ret->permitremoteopen))) == NULL) {
+				free(opt);
+				ret->permitremoteopen = oarray;
+				goto alloc_fail;
+			}
+			ret->permitremoteopen[ret->npermitremoteopen++] = opt;
 		} else if (opt_match(&opts, "tunnel")) {
 			if ((opt = opt_dequote(&opts, &errstr)) == NULL)
 				goto fail;

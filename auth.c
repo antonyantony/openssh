@@ -1003,6 +1003,8 @@ auth_log_authopts(const char *loc, const struct sshauthopt *opts, int do_remote)
 	int do_env = options.permit_user_env && opts->nenv > 0;
 	int do_permitopen = opts->npermitopen > 0 &&
 	    (options.allow_tcp_forwarding & FORWARD_LOCAL) != 0;
+	int do_permitremoteopen = opts->npermitremoteopen > 0 &&
+	    (options.allow_tcp_forwarding & FORWARD_REMOTE) != 0;
 	size_t i;
 	char msg[1024], buf[64];
 
@@ -1014,6 +1016,7 @@ auth_log_authopts(const char *loc, const struct sshauthopt *opts, int do_remote)
 	    do_env ?  " environment" : "",
 	    opts->valid_before == 0 ? "" : "expires",
 	    do_permitopen ?  " permitopen" : "",
+	    do_permitremoteopen ?  " permitremoteopen" : "",
 	    opts->permit_port_forwarding_flag ? " port-forwarding" : "",
 	    opts->cert_principals == NULL ? "" : " principals",
 	    opts->permit_pty_flag ? " pty" : "",
@@ -1053,6 +1056,13 @@ auth_log_authopts(const char *loc, const struct sshauthopt *opts, int do_remote)
 			    loc, opts->permitopen[i]);
 		}
 	}
+	if ((options.allow_tcp_forwarding & FORWARD_REMOTE) != 0) {
+		for (i = 0; i < opts->npermitremoteopen; i++) {
+			debug("%s: permitted remote open: %s",
+			    loc, opts->permitremoteopen[i]);
+		}
+	}
+
 }
 
 /* Activate a new set of key/cert options; merging with what is there. */
