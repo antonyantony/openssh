@@ -67,7 +67,7 @@ check_rfwd() {
 	_message=$2
 	rm -f $READY
 	${SSH} -F $OBJ/ssh_proxy \
-	    -R$RFWD_PORT:127.0.0.1:$PORT \
+	    -R127.0.0.1:$RFWD_PORT:127.0.0.1:$PORT \
 	    -o ExitOnForwardFailure=yes \
 	    -n host exec sh -c \'"sleep 60 & echo \$! > $READY ; wait "\' \
 	    >/dev/null 2>&1 &
@@ -100,8 +100,8 @@ cp ${OBJ}/authorized_keys_${USER} ${OBJ}/authorized_keys_${USER}.bak
 check_lfwd Y "default configuration"
 check_rfwd Y "default configuration"
 
-# Usage: all_tests yes|local|remote|no Y|N Y|N Y|N Y|N Y|N Y|N
-all_tests() {
+# Usage: lperm_tests yes|local|remote|no Y|N Y|N Y|N Y|N Y|N Y|N
+lperm_tests() {
 	_tcpfwd=$1
 	_plain_lfwd=$2
 	_plain_rfwd=$3
@@ -113,12 +113,14 @@ all_tests() {
 	_goodfwd=127.0.0.1:${PORT}
 	cp ${OBJ}/authorized_keys_${USER}.bak  ${OBJ}/authorized_keys_${USER}
 	_prefix="AllowTcpForwarding=$_tcpfwd"
+
 	# No PermitOpen
 	( cat ${OBJ}/sshd_proxy.bak ;
 	  echo "AllowTcpForwarding $_tcpfwd" ) \
 	    > ${OBJ}/sshd_proxy
 	check_lfwd $_plain_lfwd "$_prefix"
 	check_rfwd $_plain_rfwd "$_prefix"
+
 	# PermitOpen via sshd_config that doesn't match
 	( cat ${OBJ}/sshd_proxy.bak ;
 	  echo "AllowTcpForwarding $_tcpfwd" ;
@@ -131,6 +133,10 @@ all_tests() {
 	  echo "AllowTcpForwarding $_tcpfwd" ;
 	  echo "PermitOpen $_badfwd $_goodfwd" ) \
 	    > ${OBJ}/sshd_proxy
+	check_lfwd $_plain_lfwd "$_prefix, PermitOpen"
+	check_rfwd $_plain_rfwd "$_prefix, PermitOpen"
+
+	# permitopen keys option.
 	# NB. permitopen via authorized_keys should have same
 	# success/fail as via sshd_config
 	# permitopen via authorized_keys that doesn't match
@@ -151,6 +157,7 @@ all_tests() {
 	    > ${OBJ}/sshd_proxy
 	check_lfwd $_permit_lfwd "$_prefix, permitopen"
 	check_rfwd $_permit_rfwd "$_prefix, permitopen"
+
 	# Check port-forwarding flags in authorized_keys.
 	# These two should refuse all.
 	sed "s/^/no-port-forwarding /" \
@@ -180,9 +187,47 @@ all_tests() {
 	check_rfwd $_plain_rfwd "$_prefix, restrict,port-forwarding"
 }
 
-#                      no-permitopen mismatch-permitopen match-permitopen
-#   AllowTcpForwarding  local remote        local remote     local remote
-all_tests          yes      Y      Y            N      Y         Y      Y
-all_tests        local      Y      N            N      N         Y      N
-all_tests       remote      N      Y            N      Y         N      Y
-all_tests           no      N      N            N      N         N      N
+#          permit-open      none          mismatch         match
+#   AllowTcpForwarding  local remote    local remote    local remote
+lperm_tests     yes     Y     Y         N     Y         Y     Y
+lperm_tests   local     Y     N         N     N         Y     N
+lperm_tests  remote     N     Y         N     Y         N     Y
+lperm_tests      no     N     N         N     N         N     N
+
+# Usage: rperm_tests yes|local|remote|no Y|N Y|N Y|N Y|N Y|N Y|N
+rperm_tests() {
+	_tcpfwd=$1
+	_plain_lfwd=$2
+	_plain_rfwd=$3
+	_nopermit_lfwd=$4
+	_nopermit_rfwd=$5
+	_permit_lfwd=$6
+	_permit_rfwd=$7
+	_badfwd=127.0.0.1:22
+	_goodfwd=127.0.0.1:${RFWD_PORT}
+	cp ${OBJ}/authorized_keys_${USER}.bak  ${OBJ}/authorized_keys_${USER}
+	_prefix="AllowTcpForwarding=$_tcpfwd"
+
+	# PermitRemoteOpen via sshd_config that doesn't match
+	( cat ${OBJ}/sshd_proxy.bak ;
+	  echo "AllowTcpForwarding $_tcpfwd" ;
+	  echo "PermitRemoteOpen $_badfwd" ) \
+	    > ${OBJ}/sshd_proxy
+	check_lfwd $_nopermit_lfwd "$_prefix, !PermitRemoteOpen"
+	check_rfwd $_nopermit_rfwd "$_prefix, !PermitRemoteOpen"
+	# PermitRemoteOpen via sshd_config that does match
+	( cat ${OBJ}/sshd_proxy.bak ;
+	  echo "AllowTcpForwarding $_tcpfwd" ;
+	  echo "PermitRemoteOpen $_badfwd $_goodfwd" ) \
+	    > ${OBJ}/sshd_proxy
+	check_lfwd $_plain_lfwd "$_prefix, PermitRemoteOpen"
+	check_rfwd $_plain_rfwd "$_prefix, PermitRemoteOpen"
+}
+
+#   permit-remote-open      none          mismatch         match
+#   AllowTcpForwarding  local remote    local remote    local remote
+rperm_tests     yes     Y     Y         Y     N         Y     Y
+rperm_tests   local     Y     N         Y     N         Y     N
+rperm_tests  remote     N     Y         N     N         N     Y
+rperm_tests      no     N     N         N     N         N     N
+

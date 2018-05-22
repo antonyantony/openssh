@@ -375,7 +375,10 @@ fail ()
 	save_debug_log "FAIL: $@"
 	RESULT=1
 	echo "$@"
-
+	if test "x$TEST_SSH_FATAL_FAILURES" != "x" ; then
+		cleanup
+		exit $RESULT
+	fi
 }
 
 fatal ()

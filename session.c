@@ -298,7 +298,7 @@ set_permitopen_from_authopts(struct ssh *ssh, const struct sshauthopt *opts)
 
 	if ((options.allow_tcp_forwarding & FORWARD_LOCAL) == 0)
 		return;
-	channel_clear_permitted_opens(ssh);
+	channel_clear_permitted_opens(ssh, FORWARD_USER, FORWARD_LOCAL);
 	for (i = 0; i < auth_opts->npermitopen; i++) {
 		tmp = cp = xstrdup(auth_opts->permitopen[i]);
 		/* This shouldn't fail as it has already been checked */
@@ -308,7 +308,8 @@ set_permitopen_from_authopts(struct ssh *ssh, const struct sshauthopt *opts)
 		if (cp == NULL || (port = permitopen_port(cp)) < 0)
 			fatal("%s: internal error: permitopen port",
 			    __func__);
-		channel_add_permitted_opens(ssh, host, port);
+		channel_add_permitted_open(ssh, FORWARD_USER, FORWARD_LOCAL,
+		    host, port);
 		free(tmp);
 	}
 }
@@ -323,13 +324,21 @@ do_authenticated(struct ssh *ssh, Authctxt *authctxt)
 	/* setup the channel layer */
 	/* XXX - streamlocal? */
 	set_permitopen_from_authopts(ssh, auth_opts);
-	if (!auth_opts->permit_port_forwarding_flag ||
-	    options.disable_forwarding ||
-	    (options.allow_tcp_forwarding & FORWARD_LOCAL) == 0)
-		channel_disable_adm_local_opens(ssh);
-	else
-		channel_permit_all_opens(ssh);
 
+	if (!auth_opts->permit_port_forwarding_flag ||
+	    options.disable_forwarding) {
+		channel_disable_adm_opens(ssh, FORWARD_LOCAL);
+		channel_disable_adm_opens(ssh, FORWARD_REMOTE);
+	} else {
+		if ((options.allow_tcp_forwarding & FORWARD_LOCAL) == 0)
+			channel_disable_adm_opens(ssh, FORWARD_LOCAL);
+		else
+			channel_permit_all_opens(ssh, FORWARD_LOCAL);
+		if ((options.allow_tcp_forwarding & FORWARD_REMOTE) == 0)
+			channel_disable_adm_opens(ssh, FORWARD_REMOTE);
+		else
+			channel_permit_all_opens(ssh, FORWARD_REMOTE);
+	}
 	auth_debug_send();
 
 	prepare_auth_info_file(authctxt->pw, authctxt->session_info);
